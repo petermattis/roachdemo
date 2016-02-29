@@ -1,0 +1,104 @@
+<style>
+  td h4 {
+  margin: 0;
+  }
+  td pre {
+  background: none;
+  border: none;
+  }
+  thead th {
+  background: #f5f5f5;
+  }
+  .maxheight pre {
+  overflow-y: scroll;
+  max-height: 80px;
+  }
+  .node-output {
+  margin-top: 5px;
+  }
+  .table tr:hover {
+  cursor: pointer;
+  }
+  .panel .progress {
+  margin-top: 6px;
+  border: 1px solid #aaa;
+  }
+  .locked {
+  padding-left: 8px;
+  vertical-align: top;
+  padding-top: 8px;
+  color: #aaa;
+  }
+  .container {
+  max-width: 800px;
+  }
+  .container .heading h2 {
+  display: inline-block;
+  }
+</style>
+<script>
+$(function() {
+  $("[data-toggle='tooltip']").tooltip();
+  $('.table tr').click(function(e) {
+    if ($(e.target).is("a")) {
+      return;
+    }
+    href = $(e.target).parents('tr').find("td a").attr('href');
+    if (href != undefined) {
+      window.location.href = href;
+    }
+  });
+});
+</script>
+<div class="container">
+  <form method="post">
+    <table class="table table-bordered table-hover">
+      <thead>
+        <tr>
+          <th width="50px">Node</th>
+          <th width="auto">URL</th>
+          <th width="150px">Logs</th>
+          <th width="150px">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ range .Nodes }}
+        {{ $node := . }}
+        <tr class="{{ if .Active }}{{ if .Active.Paused }}warning{{ else }}success{{ end }}{{ else }}danger{{ end }}">
+          <td>
+            <a href="/node/{{ .Name }}">{{ .Name }}</a>
+          </td>
+          <td>
+            <a href="{{ .URL }}" target="_blank">{{ .URL }}</a>
+          </td>
+          <td>
+            {{ if .Active }}
+            <div class="node-run">
+              <a class="btn btn-xs btn-default" href="/node/{{ .Name }}/run/{{ .Active.ID }}/stdout"><span class="glyphicon glyphicon-file"></span> stdout</a>
+              <a class="btn btn-xs btn-default" href="/node/{{ .Name }}/run/{{ .Active.ID }}/stderr"><span class="glyphicon glyphicon-file"></span> stderr</a>
+            </div>
+            {{ else }}
+            <i>None</i>
+            {{ end }}
+          </td>
+          <td>
+            {{ if eq .Status "Stopped" }}
+            <button formaction="/node/{{ .Name }}/start" class="btn btn-xs btn-success">Start</button>
+            {{ else }}
+            <button formaction="/node/{{ .Name }}/stop" class="btn btn-xs btn-danger">Stop</button>
+	    {{ if eq .Status "Paused" }}
+            <button formaction="/node/{{ .Name }}/resume" class="btn btn-xs btn-success">Resume</button>
+            {{ else }}
+            <button formaction="/node/{{ .Name }}/pause" class="btn btn-xs btn-danger">Pause</button>
+	    {{ end }}
+            {{ end }}
+          </td>
+        </tr>
+        {{ end }}
+	<tr>
+	  <td colspan=4><button formaction="/add" class="btn btn-xs btn-success">Add Node</button></td>
+	</tr>
+      </tbody>
+    </table>
+  </form>
+</div>

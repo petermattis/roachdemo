@@ -1,0 +1,59 @@
+<style>
+  td pre {
+  display: inline;
+  background: none;
+  border: none;
+  padding: 0;
+  }
+  .table th {
+  background: #f5f5f5;
+  }
+  .scroller {
+  max-height: 120px;
+  overflow-y: scroll;
+  }
+</style>
+<script>
+  $(function() {
+  $("[data-toggle='tooltip']").tooltip();
+  });
+</script>
+<div class="container">
+  <h2 class="{{ if not .NodeRun.Started.IsZero }}{{ if .NodeRun.Stopped.IsZero }}text-info{{ else }}{{ if gt .NodeRun.WaitStatus.ExitStatus 0 }}text-danger{{ else }}text-success{{ end }}{{ end }}{{ end }}">{{ .Node.Name }} #{{ .NodeRun.ID }}</h2>
+  <form method="post">
+    <table class="table table-condensed">
+      <tr>
+	<th>Command</th>
+	<td><pre>{{ .NodeRun.Command }}</pre></td>
+      </tr>
+      <tr>
+	<th>Stdout</th>
+	<td>
+	  <pre>{{ .NodeRun.Stdout }}</pre> - {{ .NodeRun.StdoutBuf.Len }} bytes <a class="btn btn-xs btn-default" href="/node/{{ .Node.Name }}/run/{{ .NodeRun.ID }}/stdout"><span class="glyphicon glyphicon-file"></span> stdout</a>
+	</td>
+      </tr>
+      <tr>
+	<th>Stderr</th>
+	<td>
+	  <pre>{{ .NodeRun.Stderr }}</pre> - {{ .NodeRun.StderrBuf.Len }} bytes <a class="btn btn-xs btn-default" href="/node/{{ .Node.Name }}/run/{{ .NodeRun.ID }}/stderr"><span class="glyphicon glyphicon-file"></span> stderr</a>
+	</td>
+      </tr>
+      <tr>
+	<th>Started</th>
+	<td>{{ if not .NodeRun.Started.IsZero }}{{ .NodeRun.Started }}{{ end }}</td>
+      </tr>
+      <tr>
+	<th>Stopped</th>
+	<td>{{ if not .NodeRun.Stopped.IsZero }}{{ .NodeRun.Stopped }}{{ end }}</td>
+      </tr>
+      <tr>
+	<th>Pid</th>
+	<td>{{ .NodeRun.Cmd.Process.Pid }}</td>
+      </tr>
+      <tr>
+	<th>Exit status</th>
+	<td>{{ if not .NodeRun.Stopped.IsZero }}{{ .NodeRun.WaitStatus.ExitStatus }}{{ else }}<i>None</i>{{ end }}</td>
+      </tr>
+    </table>
+  </form>
+</div>

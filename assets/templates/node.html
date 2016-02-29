@@ -1,0 +1,100 @@
+<style>
+td pre {
+    display: inline;
+    background: none;
+    border: none;
+    padding: 0;
+    color: #000;
+    white-space: pre-wrap;
+}
+th {
+    background: #f5f5f5;
+}
+.node-output {
+    margin-top: 5px;
+}
+#noderuns tr:hover {
+	cursor: pointer;
+}
+</style>
+<script>
+$(function() {
+    $("[data-toggle='tooltip']").tooltip();
+    $('#noderuns tr').click(function(e) {
+        window.location.href = $(e.target).parents('tr').find("td a").attr('href')
+    });
+});
+</script>
+<div class="container">
+  <form method="post">
+    <table class="table table-condensed">
+      <tr>
+	<th>Command</th>
+	<td><pre>{{ .Node.Command }}</pre></td>
+      </tr>
+      <tr>
+	<th>Stdout</th>
+	<td><pre>{{ .Node.Stdout }}</pre></td>
+      </tr>
+      <tr>
+	<th>Stderr</th>
+	<td><pre>{{ .Node.Stderr }}</pre></td>
+      </tr>
+      <tr>
+	<th>Status</th>
+	<td>
+	  {{ if eq .Node.Status "Stopped" }}
+	  <button formaction="/node/{{ .Node.Name }}/start" class="btn btn-xs btn-success">Start</button>
+	  {{ else }}
+	  <button formaction="/node/{{ .Node.Name }}/stop" class="btn btn-xs btn-danger">Stop</button>
+	  {{ if eq .Node.Status "Paused" }}
+          <button formaction="/node/{{ .Node.Name }}/resume" class="btn btn-xs btn-success">Resume</button>
+          {{ else }}
+          <button formaction="/node/{{ .Node.Name }}/pause" class="btn btn-xs btn-danger">Pause</button>
+	  {{ end }}
+	  {{ end }}
+	</td>
+      </tr>
+      <tr>
+	<th>Active node</th>
+	<td>
+	  {{ if .Node.Active }}
+	  <div class="node-run">
+            <a href="/node/{{ .Node.Name }}/run/{{ .Node.Active.ID }}">#{{ .Node.Active.ID }}</a> {{ .Node.Active }}&nbsp;&nbsp;&nbsp;
+	    <a class="btn btn-xs btn-default" href="/node/{{ .Node.Name }}/run/{{ .Node.Active.ID }}/stdout"><span class="glyphicon glyphicon-file"></span> stdout</a>
+	    <a class="btn btn-xs btn-default" href="/node/{{ .Node.Name }}/run/{{ .Node.Active.ID }}/stderr"><span class="glyphicon glyphicon-file"></span> stderr</a>
+	  </div>
+	  {{ else }}
+	  <i>None</i>
+	  {{ end }}
+	</td>
+      </tr>
+      {{ $node := .Node }}
+    </table>
+
+    <table class="table table-bordered table-hover" id="noderuns">
+      <tr>
+	<th>Run</th>
+	<th>Pid</th>
+	<th>Exit status</th>
+	<th>Started</th>
+	<th>Stopped</th>
+	<th>Logs</th>
+      </tr>
+      {{ $NodeName := .Node.Name }}
+      {{ range .Node.Runs }}
+      <tr class="{{ if not .Started.IsZero }}{{ if .Stopped.IsZero }}info{{ else }}{{ if gt .WaitStatus.ExitStatus 0 }}danger{{ else }}success{{ end }}{{ end }}{{ end }}">
+	<td><a href="/node/{{ $NodeName }}/run/{{ .ID }}">#{{ .ID }}</a></td>
+	<td>{{ .Cmd.Process.Pid }}</td>
+	<td>{{ if not .Stopped.IsZero }}{{ .WaitStatus.ExitStatus }}{{ else }}<i>None</i>{{ end}}</td>
+	<td>{{ if not .Started.IsZero }}{{ .Started }}{{ end }}</td>
+	<td>{{ if not .Stopped.IsZero }}{{ .Stopped }}{{ end }}</td>
+	<td>
+	  <a class="btn btn-xs btn-default" href="/node/{{ $NodeName }}/run/{{ .ID }}/stdout"><span class="glyphicon glyphicon-file"></span> stdout</a>
+	  <a class="btn btn-xs btn-default" href="/node/{{ $NodeName }}/run/{{ .ID }}/stderr"><span class="glyphicon glyphicon-file"></span> stderr</a>
+	</td>
+      </tr>
+      {{ end }}
+    </table>
+  </form>
+</div>
