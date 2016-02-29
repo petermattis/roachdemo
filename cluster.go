@@ -47,7 +47,7 @@ func (c *cluster) newNode() *node {
 		"start",
 		"--insecure",
 		fmt.Sprintf("--port=%d", port),
-		fmt.Sprintf("--stores=%s", dir),
+		fmt.Sprintf("--store=%s", dir),
 	}
 	if port != basePort {
 		args = append(args, fmt.Sprintf("--join=localhost:%d", basePort))
