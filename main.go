@@ -127,7 +127,7 @@ func main() {
 	c := newCluster()
 	defer c.close()
 
-	paths, _ := filepath.Glob("data/*")
+	paths, _ := filepath.Glob(filepath.Join(dataDir, "*"))
 	for range paths {
 		c.newNode()
 	}

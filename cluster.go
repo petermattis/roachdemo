@@ -10,6 +10,15 @@ import (
 )
 
 const basePort = 26257
+const dataDir = "cockroach-data"
+
+var cockroachBin = func() string {
+	bin := "./cockroach"
+	if _, err := os.Stat(bin); err == nil {
+		return bin
+	}
+	return "cockroach"
+}()
 
 type cluster struct {
 	Nodes    map[string]*node
@@ -33,7 +42,7 @@ func (c *cluster) close() {
 
 func (c *cluster) newNode() *node {
 	name := fmt.Sprintf("%d", len(c.Nodes)+1)
-	dir := filepath.Join("data", name)
+	dir := filepath.Join(dataDir, name)
 	logdir := filepath.Join(dir, "logs")
 	if err := os.MkdirAll(logdir, 0755); err != nil {
 		log.Fatal(err)
@@ -43,7 +52,7 @@ func (c *cluster) newNode() *node {
 	c.NextPort++
 
 	args := []string{
-		"cockroach",
+		cockroachBin,
 		"start",
 		"--insecure",
 		fmt.Sprintf("--port=%d", port),
