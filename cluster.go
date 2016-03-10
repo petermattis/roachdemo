@@ -49,13 +49,15 @@ func (c *cluster) newNode() *node {
 	}
 
 	port := c.NextPort
-	c.NextPort++
+	httpPort := c.NextPort + 1
+	c.NextPort += 2
 
 	args := []string{
 		cockroachBin,
 		"start",
 		"--insecure",
 		fmt.Sprintf("--port=%d", port),
+		fmt.Sprintf("--http-port=%d", httpPort),
 		fmt.Sprintf("--store=%s", dir),
 	}
 	if port != basePort {
@@ -65,7 +67,7 @@ func (c *cluster) newNode() *node {
 	node := newNode(name, args, nil, true,
 		filepath.Join(logdir, "${RUN}.stdout"),
 		filepath.Join(logdir, "${RUN}.stderr"))
-	node.URL = fmt.Sprintf("http://localhost:%d", port)
+	node.URL = fmt.Sprintf("http://localhost:%d", httpPort)
 
 	c.Nodes[node.Name] = node
 	return node
