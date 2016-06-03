@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 )
 
@@ -40,6 +41,8 @@ func (c *cluster) close() {
 	}
 }
 
+var envRE = regexp.MustCompile(`(COCKROACH_[^=]+|GODEBUG)=(.*)`)
+
 func (c *cluster) newNode() *node {
 	name := fmt.Sprintf("%d", len(c.Nodes)+1)
 	dir := filepath.Join(dataDir, name)
@@ -64,7 +67,16 @@ func (c *cluster) newNode() *node {
 		args = append(args, fmt.Sprintf("--join=localhost:%d", basePort))
 	}
 
-	node := newNode(name, args, nil, true,
+	env := make(map[string]string)
+	for _, val := range os.Environ() {
+		m := envRE.FindStringSubmatch(val)
+		if m == nil {
+			continue
+		}
+		env[m[1]] = m[2]
+	}
+
+	node := newNode(name, args, env, true,
 		filepath.Join(logdir, "${RUN}.stdout"),
 		filepath.Join(logdir, "${RUN}.stderr"))
 	node.URL = fmt.Sprintf("http://localhost:%d", httpPort)
