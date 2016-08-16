@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"html/template"
 	"log"
@@ -10,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 )
+
+var numNodes = flag.Int("n", 0, "number of nodes")
 
 var tmpls = map[string]*template.Template{}
 
@@ -109,6 +112,8 @@ func getCSS(rw http.ResponseWriter, req *http.Request, args map[string]string) {
 }
 
 func main() {
+	flag.Parse()
+
 	for _, path := range AssetNames() {
 		if !strings.HasSuffix(path, ".html") {
 			continue
@@ -124,11 +129,14 @@ func main() {
 		tmpls[filepath.Base(path)] = t
 	}
 
-	c := newCluster()
+	c := newCluster(flag.Args())
 	defer c.close()
 
 	paths, _ := filepath.Glob(filepath.Join(dataDir, "*"))
 	for range paths {
+		c.newNode()
+	}
+	for len(c.Nodes) < *numNodes {
 		c.newNode()
 	}
 

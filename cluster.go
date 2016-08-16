@@ -24,12 +24,14 @@ var cockroachBin = func() string {
 type cluster struct {
 	Nodes    map[string]*node
 	NextPort int
+	args     []string
 }
 
-func newCluster() *cluster {
+func newCluster(args []string) *cluster {
 	return &cluster{
 		Nodes:    map[string]*node{},
 		NextPort: basePort,
+		args:     args,
 	}
 }
 
@@ -62,10 +64,13 @@ func (c *cluster) newNode() *node {
 		fmt.Sprintf("--port=%d", port),
 		fmt.Sprintf("--http-port=%d", httpPort),
 		fmt.Sprintf("--store=%s", dir),
+		fmt.Sprintf("--cache=256MiB"),
+		// fmt.Sprintf("--logtostderr"),
 	}
 	if port != basePort {
 		args = append(args, fmt.Sprintf("--join=localhost:%d", basePort))
 	}
+	args = append(args, c.args...)
 
 	env := make(map[string]string)
 	for _, val := range os.Environ() {
