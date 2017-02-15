@@ -43,7 +43,7 @@ func (c *cluster) close() {
 	}
 }
 
-var envRE = regexp.MustCompile(`(COCKROACH_[^=]+|GODEBUG)=(.*)`)
+var envRE = regexp.MustCompile(`(COCKROACH_[^=]+|GO[^=]+)=(.*)`)
 
 func (c *cluster) newNode() *node {
 	name := fmt.Sprintf("%d", len(c.Nodes)+1)
