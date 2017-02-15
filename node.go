@@ -14,12 +14,14 @@ import (
 )
 
 type node struct {
-	Name   string
-	Args   []string
-	Env    map[string]string
-	Stdout string
-	Stderr string
-	URL    string
+	Name     string
+	Args     []string
+	Env      map[string]string
+	Stdout   string
+	Stderr   string
+	URL      string
+	Attrs    string
+	Locality string
 
 	Active *nodeRun
 	Runs   []*nodeRun
@@ -34,6 +36,8 @@ type nodeRun struct {
 	Started    time.Time
 	Stopped    time.Time
 	Args       []string
+	Attrs      string
+	Locality   string
 	Stdout     string
 	Stderr     string
 	StdoutBuf  logWriter
@@ -180,8 +184,16 @@ func (w fileLogWriter) Len() int64 {
 	return 0
 }
 
-func newNode(name string, args []string, env map[string]string,
-	service bool, stdout string, stderr string) *node {
+func newNode(
+	name string,
+	args []string,
+	env map[string]string,
+	service bool,
+	stdout string,
+	stderr string,
+	attributes string,
+	locality string,
+) *node {
 	if env == nil {
 		env = map[string]string{}
 	}
@@ -191,13 +203,15 @@ func newNode(name string, args []string, env map[string]string,
 	stderr = replaceVars(stderr, env)
 
 	n := &node{
-		Name:    name,
-		Args:    args,
-		Env:     env,
-		Runs:    make([]*nodeRun, 0),
-		Service: service,
-		Stdout:  stdout,
-		Stderr:  stderr,
+		Name:     name,
+		Args:     args,
+		Env:      env,
+		Runs:     make([]*nodeRun, 0),
+		Service:  service,
+		Stdout:   stdout,
+		Stderr:   stderr,
+		Attrs:    attributes,
+		Locality: locality,
 	}
 
 	if n.Service {

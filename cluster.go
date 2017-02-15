@@ -22,16 +22,20 @@ var cockroachBin = func() string {
 }()
 
 type cluster struct {
-	Nodes    map[string]*node
-	NextPort int
-	args     []string
+	Nodes      map[string]*node
+	NextPort   int
+	args       []string
+	attrs      perNodeAttribute
+	localities perNodeAttribute
 }
 
-func newCluster(args []string) *cluster {
+func newCluster(args []string, attrs, localities perNodeAttribute) *cluster {
 	return &cluster{
-		Nodes:    map[string]*node{},
-		NextPort: basePort,
-		args:     args,
+		Nodes:      map[string]*node{},
+		NextPort:   basePort,
+		args:       args,
+		attrs:      attrs,
+		localities: localities,
 	}
 }
 
@@ -46,7 +50,8 @@ func (c *cluster) close() {
 var envRE = regexp.MustCompile(`(COCKROACH_[^=]+|GODEBUG)=(.*)`)
 
 func (c *cluster) newNode() *node {
-	name := fmt.Sprintf("%d", len(c.Nodes)+1)
+	id := len(c.Nodes) + 1
+	name := fmt.Sprintf("%d", id)
 	dir := filepath.Join(dataDir, name)
 	logdir := filepath.Join(dir, "logs")
 	if err := os.MkdirAll(logdir, 0755); err != nil {
@@ -70,6 +75,14 @@ func (c *cluster) newNode() *node {
 	if port != basePort {
 		args = append(args, fmt.Sprintf("--join=localhost:%d", basePort))
 	}
+	attributes, found := c.attrs[id]
+	if found {
+		args = append(args, fmt.Sprintf("--attrs=%s", attributes))
+	}
+	locality, found := c.localities[id]
+	if found {
+		args = append(args, fmt.Sprintf("--locality=%s", locality))
+	}
 	args = append(args, c.args...)
 
 	env := make(map[string]string)
@@ -81,11 +94,9 @@ func (c *cluster) newNode() *node {
 		env[m[1]] = m[2]
 	}
 
-	node := newNode(name, args, env, true,
-		filepath.Join(logdir, "${RUN}.stdout"),
-		filepath.Join(logdir, "${RUN}.stderr"))
+	node := newNode(name, args, env, true, filepath.Join(logdir, "${RUN}.stdout"),
+		filepath.Join(logdir, "${RUN}.stderr"), attributes, locality)
 	node.URL = fmt.Sprintf("http://localhost:%d", httpPort)
-
 	c.Nodes[node.Name] = node
 	return node
 }
@@ -182,6 +193,34 @@ func (c *cluster) resumeNode(rw http.ResponseWriter, req *http.Request, args map
 	redirect(rw, req)
 }
 
+func (c *cluster) startAll(rw http.ResponseWriter, req *http.Request, args map[string]string) {
+	for _, t := range c.Nodes {
+		t.start()
+	}
+	redirect(rw, req)
+}
+
+func (c *cluster) stopAll(rw http.ResponseWriter, req *http.Request, args map[string]string) {
+	for _, t := range c.Nodes {
+		t.stop()
+	}
+	redirect(rw, req)
+}
+
+func (c *cluster) pauseAll(rw http.ResponseWriter, req *http.Request, args map[string]string) {
+	for _, t := range c.Nodes {
+		t.pause()
+	}
+	redirect(rw, req)
+}
+
+func (c *cluster) resumeAll(rw http.ResponseWriter, req *http.Request, args map[string]string) {
+	for _, t := range c.Nodes {
+		t.resume()
+	}
+	redirect(rw, req)
+}
+
 func (c *cluster) nodeHistory(rw http.ResponseWriter, req *http.Request, args map[string]string) {
 	t := c.findNode(rw, args)
 	if t == nil {
@@ -266,4 +305,44 @@ func (c *cluster) nodeRunStderr(rw http.ResponseWriter, req *http.Request, args 
 	}
 
 	renderLayout(rw, "log.html", "layout.html", "Content", data)
+}
+
+func (c *cluster) AnyNodesStarted() bool {
+	for _, t := range c.Nodes {
+		if t.Active != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *cluster) AnyNodesStopped() bool {
+	for _, t := range c.Nodes {
+		if t.Active == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *cluster) AnyNodesPaused() bool {
+	for _, t := range c.Nodes {
+		if t.Active != nil {
+			if t.Active.Paused {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (c *cluster) AnyNodesNotPaused() bool {
+	for _, t := range c.Nodes {
+		if t.Active != nil {
+			if !t.Active.Paused {
+				return true
+			}
+		}
+	}
+	return false
 }
