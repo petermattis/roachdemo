@@ -9,12 +9,46 @@ import (
 	"net/http"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 var numNodes = flag.Int("n", 0, "number of nodes")
+var attrs = make(perNodeAttribute)
+var localities = make(perNodeAttribute)
 
 var tmpls = map[string]*template.Template{}
+
+// stringString conforms to the flag.Value interface
+type perNodeAttribute map[int]string
+
+func (p *perNodeAttribute) String() string {
+	var ids []int
+	for id := range *p {
+		ids = append(ids, id)
+	}
+	var buffer bytes.Buffer
+	for i, id := range ids {
+		if i != 0 {
+			_, _ = buffer.WriteRune(' ')
+		}
+		_, _ = buffer.WriteString(fmt.Sprintf("%d:%s", id, (*p)[id]))
+	}
+	return buffer.String()
+}
+
+func (p *perNodeAttribute) Set(value string) error {
+	splits := strings.SplitN(value, ":", 2)
+	if len(splits) != 2 {
+		return fmt.Errorf("could not parse value: %s", value)
+	}
+	id, err := strconv.ParseInt(splits[0], 10, 64)
+	if err != nil {
+		return fmt.Errorf("node id could not be parsed: %s", err)
+	}
+	(*p)[int(id)] = splits[1]
+	return nil
+}
 
 func render(asset string, data map[string]interface{}) (string, error) {
 	t, ok := tmpls[asset]
@@ -111,6 +145,11 @@ func getCSS(rw http.ResponseWriter, req *http.Request, args map[string]string) {
 	}
 }
 
+func init() {
+	flag.Var(&attrs, "a", "(repeatable) attrs to be assigned to specific nodes in the form node_id:value e.g. -a=1:ssd -a=2:x16c:ssd")
+	flag.Var(&localities, "l", "(repeatable) localities to be assigned to specific nodes in the form node_id:locality e.g. -l=1:country=us,region=us-west -l=2:country=ca,region=ca-east")
+}
+
 func main() {
 	flag.Parse()
 
@@ -129,7 +168,7 @@ func main() {
 		tmpls[filepath.Base(path)] = t
 	}
 
-	c := newCluster(flag.Args())
+	c := newCluster(flag.Args(), attrs, localities)
 	defer c.close()
 
 	paths, _ := filepath.Glob(filepath.Join(dataDir, "*"))
@@ -143,6 +182,10 @@ func main() {
 	routes := routes{
 		makeRoute(`/`, c.showCluster),
 		makeRoute(`/add`, c.addNode),
+		makeRoute(`/stopall`, c.stopAll),
+		makeRoute(`/startall`, c.startAll),
+		makeRoute(`/pauseall`, c.pauseAll),
+		makeRoute(`/resumeall`, c.resumeAll),
 
 		makeRoute(`/node/(?P<node>[^/]+)/start`, c.startNode),
 		makeRoute(`/node/(?P<node>[^/]+)/stop`, c.stopNode),
