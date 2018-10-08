@@ -66,6 +66,7 @@ func (c *cluster) newNode() *node {
 		cockroachBin,
 		"start",
 		"--insecure",
+		"--host=localhost",
 		fmt.Sprintf("--port=%d", port),
 		fmt.Sprintf("--http-port=%d", httpPort),
 		fmt.Sprintf("--store=%s", dir),
