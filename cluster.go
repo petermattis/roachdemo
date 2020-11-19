@@ -73,9 +73,12 @@ func (c *cluster) newNode() *node {
 		fmt.Sprintf("--cache=256MiB"),
 		// fmt.Sprintf("--logtostderr"),
 	}
-	if port != basePort {
-		args = append(args, fmt.Sprintf("--join=localhost:%d", basePort))
-	}
+
+	// NB: always specify the join flag, even for the
+	// first node, to avoid cockroach insisting we use
+	// start-single-node instead, which we don't want
+	// to.
+	args = append(args, fmt.Sprintf("--join=localhost:%d", basePort))
 	attributes, found := c.attrs[id]
 	if found {
 		args = append(args, fmt.Sprintf("--attrs=%s", attributes))
